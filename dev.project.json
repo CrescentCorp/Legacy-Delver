@@ -1,0 +1,30 @@
+{
+    "name": "Delver-dev",
+    "tree" : {
+      "$className": "DataModel",
+
+      "ReplicatedStorage" : {
+        "LuauBencher" : {
+            "$path" : "common/LuauBencher"
+        },
+        "Tester" : {
+            "$path" : "common/Tester"
+        },
+        "Packages" : {
+            "$path" : "Packages",
+            "Delver" : {
+                "$path" : "src"
+            }
+        }
+      },
+
+      "ServerScriptService" : {
+        "$path" : "server"
+      },
+      "StarterPlayer" : {
+        "StarterPlayerScripts" : {
+            "$path" : "client"
+        }
+      }
+    }
+  }
