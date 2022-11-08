@@ -12,8 +12,14 @@
         },
         "Packages" : {
             "$path" : "Packages",
-            "Delver" : {
-                "$path" : "src"
+            "delvergreatFolder" : {
+              "$className" : "Folder",
+              "delvers" : {
+                "$className" : "Folder",
+                "Delver" : {
+                  "$path" : "src"
+                }
+              }
             }
         }
       },
