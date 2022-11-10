@@ -7,6 +7,7 @@ local Delver = {
 	RunnersQueue = {},
 	Runners = {},
 }
+
 export type Runner = {
 	Name: string,
 	Sync: boolean,
@@ -16,6 +17,18 @@ export type Runner = {
 
 	ClientEndpoints: { [string]: () -> () }?,
 	Middleware: { (Player, ...any) -> (any) }?,
+	[any]: any,
+}
+
+local DefaultRunnerData = {
+	Name = "string",
+	Sync = "boolean",
+
+	OnPrepare = "function",
+	OnRun = "function",
+
+	ClientEndpoints = "table",
+	Middleware = "table",
 }
 
 local function createEndPointsForRunner(runnerDef: Runner)
@@ -44,9 +57,29 @@ local function createEndPointsForRunner(runnerDef: Runner)
 end
 
 function Delver.AddRunner(runnerDef: Runner)
-	assert(type(runnerDef.Name) == "string", "Runner's name should be string")
-	assert(type(runnerDef.Sync) == "boolean", "Runner's Sync should be explicitly defined as a boolean")
+	for name, prop in runnerDef do
+		local propType = type(prop)
 
+		local shouldBeType = DefaultRunnerData[name]
+
+		if shouldBeType ~= propType and shouldBeType ~= nil  then
+				error(
+					string.format(
+						"Runner's %s should be %s rather than %s",
+						name,
+						shouldBeType,
+						propType
+					)
+				)
+		elseif shouldBeType == nil and propType ~= "function" and propType ~= "table" then
+			local firstLetter = string.upper(string.sub(name, 1, 1))
+
+			if firstLetter == "_" or firstLetter == "M" then
+			else
+				error(string.format("Runner's %s should not be global", name))
+			end
+		end
+	end
 	return table.insert(Delver.RunnersQueue, runnerDef)
 end
 
@@ -67,7 +100,9 @@ function Delver._runRunnersInQueue()
 	end)
 
 	for _, Runner in RunnersQueue do
-		Runner.OnPrepare()
+		if Runner.OnPrepare then
+			Runner.OnPrepare()
+		end
 		if RunService:IsServer() then
 			EndPointData[Runner.Name] = createEndPointsForRunner(Runner)
 		end
@@ -77,6 +112,9 @@ function Delver._runRunnersInQueue()
 	return EndPointData,
 		function()
 			for _, Runner in PreparedRunners do
+				if Runner.OnRun == nil then
+					continue
+				end
 				if Runner.Sync then
 					Runner.OnRun()
 				else

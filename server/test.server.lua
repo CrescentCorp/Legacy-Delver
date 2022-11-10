@@ -4,6 +4,7 @@ Delver.AddRunner({
     Name = "hi",
     Sync = false,
 
+    MnormalData = "hi",
     OnPrepare = function()
     end,
 
@@ -14,14 +15,7 @@ Delver.AddRunner({
         end
     end,
 
-    ClientEndpoints = {
-        Test = function()
-            print("yay")
-        end,
-        Test2 = function()
-            print("hehe")
-        end
-    },
+
 })
 
 Delver.AddRunner({
