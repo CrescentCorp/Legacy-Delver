@@ -6,14 +6,16 @@ local Delver = {
 	BridgeNet = BridgeNet,
 	RunnersQueue = {},
 	Runners = {},
+	_PlayerRecord = {},
 }
 
 export type Runner = {
 	Name: string,
 	Sync: boolean,
 
-	OnPrepare: () -> (),
-	OnRun: () -> (),
+	OnPrepare: () -> ()?,
+	OnRun: () -> ()?,
+	OnUpdate: (deltaTime: number) -> ()?,
 
 	ClientEndpoints: { [string]: () -> () }?,
 	Middleware: { (Player, ...any) -> (any) }?,
@@ -26,6 +28,7 @@ local DefaultRunnerData = {
 
 	OnPrepare = "function",
 	OnRun = "function",
+	OnUpdate = "function",
 
 	ClientEndpoints = "table",
 	Middleware = "table",
@@ -47,6 +50,12 @@ local function createEndPointsForRunner(runnerDef: Runner)
 	end)
 
 	if runnerDef.Middleware then
+		table.insert(runnerDef.Middleware, 1, function(funcName, ...)
+			if not (runnerDef.ClientEndpoints :: { [string]: () -> () })[funcName] or type(funcName) ~= "string" then
+				return nil
+			end
+			return funcName, ...
+		end)
 		bridge:SetInboundMiddleware(runnerDef.Middleware)
 	end
 
@@ -59,24 +68,22 @@ end
 function Delver.AddRunner(runnerDef: Runner)
 	for name, prop in runnerDef do
 		local propType = type(prop)
-
 		local shouldBeType = DefaultRunnerData[name]
 
-		if shouldBeType ~= propType and shouldBeType ~= nil  then
-				error(
-					string.format(
-						"Runner's %s should be %s rather than %s",
-						name,
-						shouldBeType,
-						propType
-					)
-				)
+		if shouldBeType ~= propType and shouldBeType ~= nil then
+			error(string.format("%s's %s should be %s rather than %s", runnerDef.Name, name, shouldBeType, propType))
 		elseif shouldBeType == nil and propType ~= "function" and propType ~= "table" then
 			local firstLetter = string.upper(string.sub(name, 1, 1))
 
 			if firstLetter == "_" or firstLetter == "M" then
 			else
-				error(string.format("Runner's %s should not be global", name))
+				error(
+					string.format(
+						"%s's %s should not be global - add either _ or M as the first characters to silence ",
+						runnerDef.Name,
+						name
+					)
+				)
 			end
 		end
 	end
@@ -87,77 +94,88 @@ function Delver.ReturnRunnerWithName(name: string)
 	return Delver.Runners[name]
 end
 
-function Delver._runRunnersInQueue()
-	local EndPointData = {}
+function Delver.Start()
+	local endPointData = {}
 
 	local RunnersQueue = Delver.RunnersQueue
 	local PreparedRunners = table.create(#RunnersQueue)
-	table.sort(RunnersQueue, function(a, b)
-		local a_1 = a.Sync and 1 or 0
-		local b_1 = b.Sync and 1 or 0
 
-		return a_1 < b_1
+	local isServer = RunService:IsServer()
+	table.sort(RunnersQueue, function(runA, runB)
+		local aNum = runA.Sync and 1 or 0
+		local bNum = runB.Sync and 1 or 0
+
+		return aNum < bNum
 	end)
 
 	for _, Runner in RunnersQueue do
 		if Runner.OnPrepare then
 			Runner.OnPrepare()
 		end
-		if RunService:IsServer() then
-			EndPointData[Runner.Name] = createEndPointsForRunner(Runner)
+
+		if isServer then
+			local data = createEndPointsForRunner(Runner)
+
+			if data and #data > 0 then
+				endPointData[Runner.Name] = data
+			end
 		end
+		Delver.Runners[Runner.Name] = Runner
+
 		table.insert(PreparedRunners, Runner)
 	end
 
-	return EndPointData,
-		function()
-			for _, Runner in PreparedRunners do
-				if Runner.OnRun == nil then
-					continue
-				end
-				if Runner.Sync then
-					Runner.OnRun()
-				else
-					task.spawn(Runner.OnRun)
-				end
-			end
-			table.clear(Delver.RunnersQueue)
-		end
-end
+	table.clear(Delver.RunnersQueue)
 
-function Delver._runDelverNetworking(constructedEndPointData)
-	if RunService:IsServer() then
+	if isServer then
 		DelverBrdige:Connect(function(sender)
-			DelverBrdige:FireTo(sender, constructedEndPointData)
+			if Delver._PlayerRecord[sender] then
+				return
+			end
+			DelverBrdige:FireTo(sender, endPointData)
+			Delver._PlayerRecord[sender] = true
 		end)
 	else
 		DelverBrdige:Fire()
 		local finished = false
-		DelverBrdige:Once(function(EndPointInfo)
-			for RunnerName, EndPointData in EndPointInfo do
+
+		DelverBrdige:Once(function(endPointData)
+			for RunnerName, RunnerEndPoints in endPointData do
 				Delver.Runners[RunnerName] = {}
+				local Runner = Delver.Runners[RunnerName]
 
 				local bridge = BridgeNet.CreateBridge(RunnerName)
 
-				for _, FuncName in EndPointData do
-					Delver.Runners[RunnerName][FuncName] = function(...)
+				for _, FuncName in RunnerEndPoints do
+					Runner[FuncName] = function(...)
 						bridge:Fire(FuncName, ...)
 					end
 				end
+				finished = true
 			end
-			finished = true
 		end)
-
 		repeat
 			task.wait()
 		until finished
 	end
-end
 
-function Delver.Start()
-	local endPointData, Start = Delver._runRunnersInQueue()
-	Delver._runDelverNetworking(endPointData)
-	Start()
+	for _, Runner in PreparedRunners do
+		if Runner.OnRun == nil then
+			continue
+		end
+
+		if Runner.OnUpdate then
+			RunService.Heartbeat:Connect(Runner.OnUpdate)
+		end
+
+		if Runner.Sync then
+			Runner.OnRun()
+		else
+			task.spawn(Runner.OnRun)
+		end
+	end
+
+	table.clear(PreparedRunners)
 end
 
 return Delver

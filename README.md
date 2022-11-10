@@ -1,8 +1,8 @@
 # Delver
-An in-house game framework for easier and scalable roblox networking & script communication.
+A game framework for easier and scalable roblox networking & script communication.
 
 * Documentation [still in dev]
-* Roblox Marketplace [still in dev]
+* [Roblox Marketplace](https://www.roblox.com/library/11521305055/Delver)
 * Latest release [still in dev]
 
 Delver was an internal project that was targeted to solve the issues that were introduced with Knit and other major frameworks, while also providing a few features on its own.

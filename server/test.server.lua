@@ -4,34 +4,7 @@ Delver.AddRunner({
     Name = "hi",
     Sync = false,
 
-    MnormalData = "hi",
-    OnPrepare = function()
-    end,
-
-    OnRun = function()
-        while true do 
-            print("hi")
-            task.wait(2)
-        end
-    end,
-
-
-})
-
-Delver.AddRunner({
-    Name = "ttt",
-    Sync = true,
-
-    OnPrepare = function()
-    end,
-
-    OnRun = function()
-        while true do 
-            print("ttt")
-            task.wait(2)
-        end
-    end,
-
+    _normalData = "hi",
     ClientEndpoints = {
         Test = function()
             print("yay")
@@ -40,7 +13,16 @@ Delver.AddRunner({
             print("hehe")
         end
     },
+
+    Middleware = {
+        function(...)
+            print("middle", ...)
+            return ...
+        end
+    }
 })
 
 
 Delver.Start()
+
+--Delver.Start()
