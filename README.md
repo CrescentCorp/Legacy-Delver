@@ -14,7 +14,7 @@ Delver was an internal project that was targeted to solve the issues that were i
 * **Running Server code from the Client** -- Delver gives you the ability to expose what's is known as ***endpoints*** from the server to the client. 
 * **Networking aint go brr** -- Performant networking was always an concern of Delver, as such, we preciously chose a specific networking library based on our needs with the highest performance.
 * **Lightweight** -- Delver is extremely lightweight as it only requires one essential library for networking.
-* **No Global State** -- The hell of `_G` like data storages are entirely prohibited in Delver. The only way to store data is through naming them a name that starts with `_` *(to imply they are private)* or `M` *(to imply they are Metadata)* - Of course assuming that the data type isn't either a table or a function. 
+* **No Global State** -- `_G` like data storages are entirely prohibited in Delver. The only way to store data is through naming them a name that starts with `_` *(to imply they are private)* or `M` *(to imply they are Metadata)* - Of course assuming that the data type isn't either a table or a function. 
 
 ## Goals
 
