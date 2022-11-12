@@ -2,9 +2,9 @@ site_name: Delver
 repo_url: https://github.com/Plothan/Delver
 repo_name: Plothan/Delver
 theme:
+  name: material
   logo: Icon.png
   favicon: Icon.png
-  name: material
   features:
     - navigation.indexes 
     - navigation.tabs
