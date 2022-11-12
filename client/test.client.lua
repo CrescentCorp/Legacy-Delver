@@ -9,9 +9,9 @@ Delver.AddRunner({
     end,
     OnRun = function()
         local serverHi = Delver.ReturnRunnerWithName("hi")
-        serverHi:Test()
+        print(serverHi:Test())
         serverHi:Test2()
-
+        print("yes")
     end,
 })
 

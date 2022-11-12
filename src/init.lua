@@ -13,81 +13,110 @@ export type Runner = {
 	Name: string,
 	Sync: boolean,
 
-	OnPrepare: () -> ()?,
-	OnRun: () -> ()?,
-	OnUpdate: (deltaTime: number) -> ()?,
+	OnPrepare: (self: Runner) -> ()?,
+	OnRun: (self: Runner) -> ()?,
+	OnHeartbeat: (self: Runner, deltaTime: number) -> ()?,
+	OnRender: (self: Runner, deltaTime: number) -> ()?,
+	OnStepped: (self: Runner, time: number, deltaTime: number) -> ()?,
 
 	ClientEndpoints: { [string]: () -> () }?,
 	Middleware: { (Player, ...any) -> (any) }?,
 	[any]: any,
 }
 
-local DefaultRunnerData = {
+local DefaultRunnerDataTypes = {
 	Name = "string",
 	Sync = "boolean",
 
 	OnPrepare = "function",
 	OnRun = "function",
-	OnUpdate = "function",
-
+	OnHeartbeat = "function",
+	OnRender = "function",
+	OnStepped = "function",
 	ClientEndpoints = "table",
 	Middleware = "table",
 }
 
+local allowedTags = {
+	["_"] = true,
+	["M_"] = true,
+}
+
 local function createEndPointsForRunner(runnerDef: Runner)
-	local tbl = {}
+	local endPoints = {}
+
 	if type(runnerDef.ClientEndpoints) ~= "table" then
 		return
 	end
 
+	for Name in runnerDef.ClientEndpoints :: any do
+		table.insert(endPoints, Name)
+	end
+
 	local bridge = BridgeNet.CreateBridge(runnerDef.Name)
-	bridge:Connect(function(_, NameFunc, ...)
+	local middleware = runnerDef.Middleware
+	bridge:OnInvoke(function(plr, NameFunc, ...)
+		if middleware then
+			local lastParam = table.pack(plr, NameFunc, ...)
+			for _, func in middleware do
+				lastParam = table.pack(func(table.unpack(lastParam)))
+
+				if #lastParam == 0 then
+					return 0
+				end
+			end
+		end
 		local endpoint = (runnerDef.ClientEndpoints :: { [string]: () -> () })[NameFunc]
 
 		if endpoint then
-			endpoint(...)
+			return endpoint(plr, ...)
 		end
+		return 0
 	end)
+	return endPoints
+end
 
-	if runnerDef.Middleware then
-		table.insert(runnerDef.Middleware, 1, function(funcName, ...)
-			if not (runnerDef.ClientEndpoints :: { [string]: () -> () })[funcName] or type(funcName) ~= "string" then
-				return nil
-			end
-			return funcName, ...
-		end)
-		bridge:SetInboundMiddleware(runnerDef.Middleware)
+local function checkNamingRulesForNonStandard(runnerName, propType, propName)
+	if propType == "function" or propType == "table" or propName == "Instance" then
+		return true
 	end
 
-	for Name in runnerDef.ClientEndpoints :: any do
-		table.insert(tbl, Name)
+	local firstLetter = string.upper(string.sub(propName, 1, 1))
+
+	if allowedTags[firstLetter] then
+		return true
+	else
+		error(
+			string.format(
+				"%s's %s should not be global - add either _ or M_ as the first characters to silence ",
+				runnerName,
+				propName
+			)
+		)
 	end
-	return tbl
 end
 
 function Delver.AddRunner(runnerDef: Runner)
 	for name, prop in runnerDef do
 		local propType = type(prop)
-		local shouldBeType = DefaultRunnerData[name]
+		local shouldBeType = DefaultRunnerDataTypes[name]
 
 		if shouldBeType ~= propType and shouldBeType ~= nil then
 			error(string.format("%s's %s should be %s rather than %s", runnerDef.Name, name, shouldBeType, propType))
-		elseif shouldBeType == nil and propType ~= "function" and propType ~= "table" then
-			local firstLetter = string.upper(string.sub(name, 1, 1))
-
-			if firstLetter == "_" or firstLetter == "M" then
-			else
-				error(
-					string.format(
-						"%s's %s should not be global - add either _ or M as the first characters to silence ",
-						runnerDef.Name,
-						name
-					)
-				)
-			end
+		elseif shouldBeType == nil then
+			checkNamingRulesForNonStandard(runnerDef.Name, propType, name)
 		end
 	end
-	return table.insert(Delver.RunnersQueue, runnerDef)
+
+	setmetatable(runnerDef, {
+		__newindex = function(_, key, value)
+			checkNamingRulesForNonStandard(runnerDef.Name, type(value), key)
+		end,
+	})
+
+	table.insert(Delver.RunnersQueue, runnerDef)
+	Delver.Runners[runnerDef.Name] = runnerDef
+	return runnerDef
 end
 
 function Delver.ReturnRunnerWithName(name: string)
@@ -110,7 +139,7 @@ function Delver.Start()
 
 	for _, Runner in RunnersQueue do
 		if Runner.OnPrepare then
-			Runner.OnPrepare()
+			Runner:OnPrepare()
 		end
 
 		if isServer then
@@ -120,7 +149,6 @@ function Delver.Start()
 				endPointData[Runner.Name] = data
 			end
 		end
-		Delver.Runners[Runner.Name] = Runner
 
 		table.insert(PreparedRunners, Runner)
 	end
@@ -148,7 +176,7 @@ function Delver.Start()
 
 				for _, FuncName in RunnerEndPoints do
 					Runner[FuncName] = function(...)
-						bridge:Fire(FuncName, ...)
+						return bridge:InvokeServerAsync(FuncName, ...)
 					end
 				end
 				finished = true
@@ -160,18 +188,33 @@ function Delver.Start()
 	end
 
 	for _, Runner in PreparedRunners do
-		if Runner.OnRun == nil then
-			continue
+		if Runner.OnRender then
+			if isServer then
+				error("OnRender isn't usable on the server")
+			end
+			RunService.RenderStepped:Connect(function(...)
+				Runner:OnRender(...)
+			end)
 		end
 
-		if Runner.OnUpdate then
-			RunService.Heartbeat:Connect(Runner.OnUpdate)
+		if Runner.OnHeartbeat then
+			RunService.Heartbeat:Connect(function(...)
+				Runner:OnHeartbeat(...)
+			end)
 		end
 
-		if Runner.Sync then
-			Runner.OnRun()
-		else
-			task.spawn(Runner.OnRun)
+		if Runner.OnStepped then
+			RunService.Stepped:Connect(function(...)
+				Runner:OnStepped(...)
+			end)
+		end
+
+		if Runner.OnRun then
+			if Runner.Sync then
+				Runner:OnRun()
+			else
+				task.spawn(Runner.OnRun, Runner)
+			end
 		end
 	end
 

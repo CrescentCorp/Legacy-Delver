@@ -1,0 +1,35 @@
+site_name: Delver
+repo_url: https://github.com/Plothan/Delver
+repo_name: Plothan/Delver
+theme:
+  logo: Icon.png
+  favicon: Icon.png
+  name: material
+  features:
+    - navigation.indexes 
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home:
+    - Home: Home/index.md
+    - Basic Usage: Home/basic-usage.md
+    - Storing Data in Runners: Home/storing-data.md
+    - Lifecycles and Execution: Home/lifecycles.md
+    - Networking and Middleware: Home/networking.md
+  - API:
+    - API: API/index.md
+extra_css:
+  - extra.css
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
