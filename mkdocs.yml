@@ -15,7 +15,6 @@ theme:
 
 nav:
   - Home:
-    - Home: Home/index.md
     - Basic Usage: Home/basic-usage.md
     - Storing Data in Runners: Home/storing-data.md
     - Lifecycles and Execution: Home/lifecycles.md
