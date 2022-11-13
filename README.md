@@ -1,7 +1,7 @@
 # Delver
 A game framework for easier and scalable roblox networking & script communication.
 
-* Documentation [still in dev]
+* [Documentation](https://plothan.github.io/Delver/)
 * [Roblox Marketplace](https://www.roblox.com/library/11521305055/Delver)
 * [Latest release](https://github.com/Plothan/Delver/releases/tag/V1.0.0)
 

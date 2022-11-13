@@ -110,6 +110,9 @@ function Delver.AddRunner(runnerDef: Runner)
 
 	setmetatable(runnerDef, {
 		__newindex = function(_, key, value)
+			if DefaultRunnerDataTypes[key] then
+				error(string.format("%s's %s should not be initialized dynamically", runnerDef.Name, key))
+			end
 			checkNamingRulesForNonStandard(runnerDef.Name, type(value), key)
 		end,
 	})

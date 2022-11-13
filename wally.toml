@@ -1,8 +1,8 @@
 [package]
-name = "sinlerdev/delver"
-version = "1.0.0"
+name = "sinlerdev/delver-pub"
+version = "0.1.0"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
-
+description = "A game framework for easier & scalable networking and cross-communication"
 [dependencies]
 BridgeNet = "ffrostflame/bridgenet@2.0.0-rc4"
