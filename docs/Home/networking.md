@@ -48,4 +48,4 @@ Delver.addRunner({...
 
 Internally, whenever an endpoint request comes in, Delver calls these functions in order, and will drop the reqeust if a nil was solely returned.
 
-While argument injection can be useful, ***it is important to be aware of the dangers of mutating `NameFunc`***.
+While argument injection can be useful, ***it is important to be aware of the dangers of mutating `NameFunc`***. To cut a long story short, any mutation of the NameFunc may result in Delver dropping requests or completely choosing a different endpoint.
