@@ -93,7 +93,7 @@ local bootstrapper = {}
 function bootstrapper:start(configuration: { directories: {Instance}, options: options })
 	local testResults = {}
 
-	for _, directory: Folder in configuration.directories do
+	for _, directory in configuration.directories do
 		testResults[directory.Name] = testDirectory(directory:GetChildren(), configuration.options)
 	end
 

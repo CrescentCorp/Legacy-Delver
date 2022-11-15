@@ -76,8 +76,8 @@ local function createEndPointsForRunner(runnerDef: Runner)
 	return endPoints
 end
 
-local function checkNamingRulesForNonStandard(runnerName, propType, propName)
-	if propType == "function" or propType == "table" or propName == "Instance" then
+function checkNamingRulesForNonStandard(runnerName, propType, propName)
+	if propType == "function" or propType == "table" or propType == "Instance" then
 		return true
 	end
 
@@ -98,7 +98,7 @@ end
 
 function Delver.AddRunner(runnerDef: Runner)
 	for name, prop in runnerDef do
-		local propType = type(prop)
+		local propType = typeof(prop)
 		local shouldBeType = DefaultRunnerDataTypes[name]
 
 		if shouldBeType ~= propType and shouldBeType ~= nil then
@@ -113,7 +113,7 @@ function Delver.AddRunner(runnerDef: Runner)
 			if DefaultRunnerDataTypes[key] then
 				error(string.format("%s's %s should not be initialized dynamically", runnerDef.Name, key))
 			end
-			checkNamingRulesForNonStandard(runnerDef.Name, type(value), key)
+			checkNamingRulesForNonStandard(runnerDef.Name, typeof(value), key)
 		end,
 	})
 
@@ -176,7 +176,7 @@ function Delver.Start()
 				local Runner = Delver.Runners[RunnerName]
 
 				local bridge = BridgeNet.CreateBridge(RunnerName)
-
+				
 				for _, FuncName in RunnerEndPoints do
 					Runner[FuncName] = function(...)
 						return bridge:InvokeServerAsync(FuncName, ...)
