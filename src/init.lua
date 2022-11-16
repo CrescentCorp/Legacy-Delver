@@ -75,7 +75,6 @@ local function createEndPointsForRunner(runnerDef: Runner)
 	end)
 	return endPoints
 end
-
 function checkNamingRulesForNonStandard(runnerName, propType, propName)
 	if propType == "function" or propType == "table" or propType == "Instance" then
 		return true
@@ -176,7 +175,7 @@ function Delver.Start()
 				local Runner = Delver.Runners[RunnerName]
 
 				local bridge = BridgeNet.CreateBridge(RunnerName)
-				
+
 				for _, FuncName in RunnerEndPoints do
 					Runner[FuncName] = function(...)
 						return bridge:InvokeServerAsync(FuncName, ...)
