@@ -1,6 +1,7 @@
 local RunService = game:GetService("RunService")
 local BridgeNet = require(script.Parent.Parent.Parent.BridgeNet)
 local DelverBrdige = BridgeNet.CreateBridge("DelverBridge")
+local logging = require(script.logging)
 
 local Delver = {
 	BridgeNet = BridgeNet,
@@ -85,13 +86,8 @@ function checkNamingRulesForNonStandard(runnerName, propType, propName)
 	if allowedTags[firstLetter] then
 		return true
 	else
-		error(
-			string.format(
-				"%s's %s should not be global - add either _ or M_ as the first characters to silence ",
-				runnerName,
-				propName
-			)
-		)
+		logging.logError("unCoveredDataFields", runnerName, propName)
+		return false
 	end
 end
 
@@ -101,7 +97,7 @@ function Delver.AddRunner(runnerDef: Runner)
 		local shouldBeType = DefaultRunnerDataTypes[name]
 
 		if shouldBeType ~= propType and shouldBeType ~= nil then
-			error(string.format("%s's %s should be %s rather than %s", runnerDef.Name, name, shouldBeType, propType))
+			logging.logError("unMatchedStandardType", runnerDef.Name, name, shouldBeType, propType)
 		elseif shouldBeType == nil then
 			checkNamingRulesForNonStandard(runnerDef.Name, propType, name)
 		end
@@ -110,7 +106,7 @@ function Delver.AddRunner(runnerDef: Runner)
 	setmetatable(runnerDef, {
 		__newindex = function(_, key, value)
 			if DefaultRunnerDataTypes[key] then
-				error(string.format("%s's %s should not be initialized dynamically", runnerDef.Name, key))
+				logging.logErrorNonBlocking("dynamicStandardKeys", runnerDef.Name, key)
 			end
 			checkNamingRulesForNonStandard(runnerDef.Name, typeof(value), key)
 		end,

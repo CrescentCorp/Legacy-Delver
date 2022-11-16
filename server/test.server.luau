@@ -29,10 +29,13 @@ Delver.AddRunner({
 
 Delver.AddRunner({
     Name = "MoneyRunner",
-    Sync = false,
+    Sync = true,
 
-    _money = 0,
+    money = 0,
 
+    OnPrepare = function(self)
+
+    end,
     GetMoney = function(self)
         return self._money
     end,
